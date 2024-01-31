@@ -3,8 +3,8 @@ package ru.kata.spring.boot_security.demo.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import ru.kata.spring.boot_security.demo.dto.UserDTO;
 import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.models.User;
 import ru.kata.spring.boot_security.demo.services.RoleService;
@@ -13,9 +13,6 @@ import ru.kata.spring.boot_security.demo.services.UserService;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -23,19 +20,19 @@ public class AdminRestController {
 
     private final UserService userService;
     private final RoleService roleService;
-    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public AdminRestController(UserService userService, RoleService roleService, PasswordEncoder passwordEncoder) {
+    public AdminRestController(UserService userService, RoleService roleService) {
         this.userService = userService;
         this.roleService = roleService;
-        this.passwordEncoder = passwordEncoder;
+
     }
 
 
     @GetMapping("/principal")
     public ResponseEntity<User> showUser(Principal principal) {
-        return new ResponseEntity<>( userService.findByUserName(principal.getName()).get(), HttpStatus.OK);
+        User user = userService.findByUserName(principal.getName()).orElseThrow(() -> new RuntimeException("Principal не найден!"));
+        return new ResponseEntity<>( user, HttpStatus.OK);
     }
 
     @GetMapping("/users")
@@ -50,36 +47,34 @@ public class AdminRestController {
 
 
     @PostMapping("/users")
-    public ResponseEntity<User> addUser(@RequestBody User user) {
-        Set<Role> set = user.getRoles().stream()
-                .map(Role::getName)
-                .flatMap(name -> roleService.getRoleByName(name).stream())
-                .collect(Collectors.toSet());
-        user.setRoles(set);
-        userService.addUser(user);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+    public ResponseEntity<HttpStatus> addUser(@RequestBody UserDTO userDTO) {
+        userService.addUser(convertToUser(userDTO));
+        return ResponseEntity.ok(HttpStatus.OK);
     }
 
+
     @PutMapping("/users")
-    public ResponseEntity<User> updateUser(@RequestBody User user) {
-        Optional<User> optUser = userService.getUserById(user.getId());
-
-        if (optUser.isPresent() && (!user.getPassword().equals(optUser.get().getPassword()))) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-
-        Set<Role> set = user.getRoles().stream()
-                .map(Role::getName)
-                .flatMap(name -> roleService.getRoleByName(name).stream())
-                .collect(Collectors.toSet());
-        user.setRoles(set);
-        userService.updateUser(user);
-        return new ResponseEntity<>(user, HttpStatus.OK);
+    public ResponseEntity<HttpStatus> updateUser(@RequestBody UserDTO userDTO) {
+        userService.updateUser(convertToUser(userDTO));
+        return ResponseEntity.ok(HttpStatus.OK);
     }
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<HttpStatus> deleteUser(@PathVariable("id") Long id) {
         userService.removeUser(id);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok(HttpStatus.OK);
     }
+
+
+    private User convertToUser(UserDTO userDTO) {
+        User user = new User();
+        user.setId(userDTO.getId());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setUserName(userDTO.getUserName());
+        user.setPassword(userDTO.getPassword());
+        user.setRoles(userDTO.getRoles());
+        return user;
+    }
+
 }

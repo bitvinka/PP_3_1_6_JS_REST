@@ -1,17 +1,29 @@
 package ru.kata.spring.boot_security.demo.dao;
 
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.models.User;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class UserDaoImp implements UserDao {
     @PersistenceContext
     private EntityManager em;
+    private final RoleDao roleDao;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserDaoImp(RoleDao roleDao, @Lazy PasswordEncoder passwordEncoder) {
+        this.roleDao = roleDao;
+        this.passwordEncoder = passwordEncoder;
+    }
 
 
     @Override
@@ -21,6 +33,7 @@ public class UserDaoImp implements UserDao {
 
     @Override
     public boolean addUser(User user) {
+        user.setRoles(rolesUser(user));
         em.persist(user);
         return true;
     }
@@ -42,6 +55,11 @@ public class UserDaoImp implements UserDao {
 
     @Override
     public void updateUser(User user) {
+        Optional<User> optUser = getUserById(user.getId());
+        if (optUser.isPresent() && (!user.getPassword().equals(optUser.get().getPassword()))) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        user.setRoles(rolesUser(user));
         em.merge(user);
 
     }
@@ -53,6 +71,13 @@ public class UserDaoImp implements UserDao {
                 .getResultList()
                 .stream()
                 .findFirst();
+    }
+
+    public Set<Role> rolesUser(User user) {
+        return user.getRoles().stream()
+                .map(Role::getName)
+                .flatMap(name -> roleDao.getRoleByName(name).stream())
+                .collect(Collectors.toSet());
     }
 
 }
