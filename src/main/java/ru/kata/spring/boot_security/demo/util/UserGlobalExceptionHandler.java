@@ -16,7 +16,7 @@ public class UserGlobalExceptionHandler {
     @ExceptionHandler
     private ResponseEntity<UserErrorResponse> handleException(Exception e) {
         UserErrorResponse errorResponse = new UserErrorResponse(e.getMessage(), System.currentTimeMillis());
-        //в http ответе тело ответа (errorResponse) и статус в заголовке
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST); //NOT_FOUND - 404 статус
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }

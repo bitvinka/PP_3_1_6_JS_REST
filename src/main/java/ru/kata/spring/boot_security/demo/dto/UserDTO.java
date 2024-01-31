@@ -36,7 +36,6 @@ public class UserDTO {
 
 
     public UserDTO() {
-        // TODO document why this constructor is empty
     }
 
     public Long getId() {
