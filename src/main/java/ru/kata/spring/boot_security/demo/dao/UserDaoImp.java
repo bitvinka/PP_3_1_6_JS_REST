@@ -33,7 +33,9 @@ public class UserDaoImp implements UserDao {
 
     @Override
     public boolean addUser(User user) {
-        user.setRoles(rolesUser(user));
+        if (!(user.getRoles() instanceof Set)) {
+            user.setRoles(rolesUser(user));
+        }
         em.persist(user);
         return true;
     }
