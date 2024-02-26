@@ -1,0 +1,23 @@
+version: "3"
+services:
+  mysql:
+    image: mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=pass
+      - MYSQL_DATABASE=db
+  app:
+    build: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db
+    depends_on:
+      - mysql
+    restart: always
+    ports:
+      - "8080:8080"
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8888:8080"
+
